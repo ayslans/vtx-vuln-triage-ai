@@ -1,0 +1,21 @@
+policy_name: "VTX PCI-DSS Vulnerability Triage Policy"
+version: "1.0"
+
+# SLAs alinhados a boas práticas de gestão de vulnerabilidades em ambiente FinTech / PCI-DSS
+sla_days:
+  P0: 2    # Crítico / Explorado ativamente (CISA KEV) em ativo crítico
+  P1: 7    # Alto risco (CVSS >= 9.0 ou EPSS >= 0.70 ou KEV em ativo não-crítico)
+  P2: 30   # Risco moderado/alto (CVSS >= 7.0 ou EPSS >= 0.30) - Janela padrão PCI-DSS Req. 6.3.3
+  P3: 90   # Risco baixo/médio (CVSS < 7.0 sem exploração ativa)
+
+thresholds:
+  critical_cvss: 9.0
+  high_cvss: 7.0
+  high_epss: 0.70
+  medium_epss: 0.30
+
+# Mapeamento de governança para auditoria
+compliance_references:
+  pci_dss: "Req. 6.3.1 / 6.3.3 (Identificação e remediação de vulnerabilidades)"
+  nist_csf: "ID.RA-01 / DE.CM-09 (Avaliação de Risco e Monitoramento Contínuo)"
+  cis_controls: "CIS Control 7 (Continuous Vulnerability Management)"

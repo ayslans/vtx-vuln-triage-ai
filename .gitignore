@@ -1,0 +1,22 @@
+# Ambientes virtuais e Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Segredos e ambiente local
+.env
+
+# Cache e relatórios gerados localmente
+data/cache/*.json
+data/raw/*.json
+data/reports/*.md
+
+# IDEs e OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

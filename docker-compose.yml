@@ -1,0 +1,37 @@
+services:
+  trivy-legacy:
+    image: aquasec/trivy:0.56.2
+    container_name: vtx-trivy-legacy
+    profiles: ["legacy"]
+    volumes:
+      - ./data/raw:/output
+      - trivy-cache:/root/.cache/
+    command:
+      - image
+      - --scanners
+      - vuln
+      - --format
+      - json
+      - --output
+      - /output/legacy_nginx_1.23.json
+      - nginx:1.23.0
+
+  trivy-remediated:
+    image: aquasec/trivy:0.56.2
+    container_name: vtx-trivy-remediated
+    profiles: ["remediated"]
+    volumes:
+      - ./data/raw:/output
+      - trivy-cache:/root/.cache/
+    command:
+      - image
+      - --scanners
+      - vuln
+      - --format
+      - json
+      - --output
+      - /output/remediated_nginx_1.27_alpine.json
+      - nginx:1.27-alpine
+
+volumes:
+  trivy-cache:
