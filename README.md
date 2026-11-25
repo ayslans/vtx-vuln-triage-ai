@@ -1,5 +1,7 @@
 # vtx-vuln-triage-ai — Project Cookbook
 
+[![CI](https://github.com/ayslans/vtx-vuln-triage-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ayslans/vtx-vuln-triage-ai/actions/workflows/ci.yml)
+
 Pipeline automatizado de **triagem e priorização de vulnerabilidades orientada a risco real** para ambientes **FinTech / PCI-DSS**. Combina relatórios do **Trivy**, inteligência de ameaças (**CISA KEV** e **FIRST EPSS**), motor determinístico de políticas e síntese executiva estruturada com **IA (e fallback determinístico)**.
 
 ---
