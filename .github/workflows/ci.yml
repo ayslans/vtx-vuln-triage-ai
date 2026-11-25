@@ -1,4 +1,4 @@
-name: CI — Tests & Policy Quality Gate
+name: CI — Tests, Policy & AppSec Gate
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   quality-gate:
-    name: Python ${{ matrix.python-version }}
+    name: Tests & Policy (Python \${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -27,10 +27,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python \${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: \${{ matrix.python-version }}
           cache: "pip"
           cache-dependency-path: "pyproject.toml"
 
@@ -49,3 +49,43 @@ jobs:
 
       - name: CLI smoke check
         run: python -m vtx_vuln_triage.main --help
+
+  appsec-scan:
+    name: AppSec — Bandit SAST & pip-audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
+
+      - name: Install runtime dependencies and AppSec scanners
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e . bandit pip-audit
+
+      - name: Run Bandit SAST (Medium+ severity & confidence)
+        run: |
+          mkdir -p artifacts
+          bandit -r src -ll -ii -f json -o artifacts/bandit-report.json || true
+          bandit -r src -ll -ii
+
+      - name: Run pip-audit (dependency CVE check)
+        run: |
+          mkdir -p artifacts
+          pip-audit --skip-editable --desc on --format json --output artifacts/pip-audit-report.json || true
+          pip-audit --skip-editable --desc on
+
+      - name: Upload AppSec scan reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appsec-reports-vtx-vuln-triage-ai
+          path: artifacts/
+          retention-days: 14
