@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   quality-gate:
-    name: Tests & Policy (Python \${{ matrix.python-version }})
+    name: Tests & Policy (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -27,10 +27,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python \${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: \${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
           cache: "pip"
           cache-dependency-path: "pyproject.toml"
 
@@ -88,4 +88,74 @@ jobs:
         with:
           name: appsec-reports-vtx-vuln-triage-ai
           path: artifacts/
+          retention-days: 14
+
+  trivy-scan:
+    name: Trivy — Filesystem, IaC & Container SARIF
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Trivy Filesystem & IaC scan (vuln, secret, misconfig)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "vuln,secret,misconfig"
+          format: "sarif"
+          output: "artifacts/trivy-fs.sarif"
+          severity: "CRITICAL,HIGH"
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy FS SARIF to GitHub Security
+        if: always() && hashFiles('artifacts/trivy-fs.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: "artifacts/trivy-fs.sarif"
+          category: "trivy-fs-vtx-vuln-triage-ai"
+
+      - name: Build container image (when Dockerfile exists)
+        if: ${{ !cancelled() && hashFiles('Dockerfile') != '' }}
+        run: docker build -t vtx-vuln-triage-ai:ci .
+
+      - name: Trivy Container Image scan
+        if: ${{ !cancelled() && hashFiles('Dockerfile') != '' }}
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          skip-setup-trivy: true
+          scan-type: "image"
+          image-ref: "vtx-vuln-triage-ai:ci"
+          vuln-type: "os,library"
+          format: "sarif"
+          output: "artifacts/trivy-container.sarif"
+          severity: "CRITICAL,HIGH"
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy Container SARIF to GitHub Security
+        if: always() && hashFiles('artifacts/trivy-container.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: "artifacts/trivy-container.sarif"
+          category: "trivy-container-vtx-vuln-triage-ai"
+
+      - name: Upload Trivy SARIF artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sarif-vtx-vuln-triage-ai
+          path: artifacts/*.sarif
+          if-no-files-found: ignore
           retention-days: 14
