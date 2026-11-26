@@ -1,8 +1,11 @@
 # vtx-vuln-triage-ai — Project Cookbook
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-3133FF?style=flat)](https://github.com/ayslans/vtx-vuln-triage-ai/blob/main/LICENSE)
-
 [![CI](https://github.com/ayslans/vtx-vuln-triage-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ayslans/vtx-vuln-triage-ai/actions/workflows/ci.yml)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3133FF?style=flat)
+![Trivy + KEV/EPSS](https://img.shields.io/badge/Trivy-KEV%20%2B%20EPSS-B743FF?style=flat)
+![PCI-DSS](https://img.shields.io/badge/compliance-PCI--DSS-3133FF?style=flat)
+![Docker Non-Root](https://img.shields.io/badge/docker-non--root-2496ED?style=flat)
+[![License: MIT](https://img.shields.io/badge/License-MIT-3133FF?style=flat)](https://github.com/ayslans/vtx-vuln-triage-ai/blob/main/LICENSE)
 
 Pipeline automatizado de **triagem e priorização de vulnerabilidades orientada a risco real** para ambientes **FinTech / PCI-DSS**. Combina relatórios do **Trivy**, inteligência de ameaças (**CISA KEV** e **FIRST EPSS**), motor determinístico de políticas e síntese executiva estruturada com **IA (e fallback determinístico)**.
 
