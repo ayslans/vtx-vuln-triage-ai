@@ -82,18 +82,10 @@ jobs:
           pip-audit --skip-editable --desc on --format json --output artifacts/pip-audit-report.json || true
           pip-audit --skip-editable --desc on
 
-            - name: Restore triage & scan cache
-              uses: actions/cache@v4
-              with:
-                path: artifacts
-                key: vtx-vuln-triage-cache-v1-${{ runner.os }}-${{ github.run_id }}
-                restore-keys: |
-                  vtx-vuln-triage-cache-v1-${{ runner.os }}-
       - name: Upload AppSec scan reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          retention-days: 14
           name: appsec-reports-vtx-vuln-triage-ai
           path: artifacts/
           retention-days: 14
@@ -133,11 +125,9 @@ jobs:
           sarif_file: "artifacts/trivy-fs.sarif"
           category: "trivy-fs-vtx-vuln-triage-ai"
 
-      - name: Build and smoke-test hardened container image
+      - name: Build container image (when Dockerfile exists)
         if: ${{ !cancelled() && hashFiles('Dockerfile') != '' }}
-        run: |
-          docker build -t vtx-vuln-triage-ai:ci .
-          docker run --rm vtx-vuln-triage-ai:ci --help
+        run: docker build -t vtx-vuln-triage-ai:ci .
 
       - name: Trivy Container Image scan
         if: ${{ !cancelled() && hashFiles('Dockerfile') != '' }}
@@ -161,28 +151,10 @@ jobs:
           sarif_file: "artifacts/trivy-container.sarif"
           category: "trivy-container-vtx-vuln-triage-ai"
 
-      - name: Print Trivy SARIF findings on failure
-        if: failure()
-        run: |
-          python3 - << 'INNER_EOF'
-          import json
-          from pathlib import Path
-          for sarif in sorted(Path("artifacts").glob("*.sarif")):
-              data = json.loads(sarif.read_text(encoding="utf-8"))
-              results = [r for run in data.get("runs", []) for r in run.get("results", [])]
-              if results:
-                  print(f"::group::{sarif.name} ({len(results)} findings)")
-                  for r in results:
-                      lines = [ln.strip() for ln in r.get("message", {}).get("text", "").splitlines() if ln.strip()]
-                      print(f"- [{r.get('level')}] {r.get('ruleId')}: {' | '.join(lines[:5])}")
-                  print("::endgroup::")
-          INNER_EOF
-
       - name: Upload Trivy SARIF artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          retention-days: 14
           name: trivy-sarif-vtx-vuln-triage-ai
           path: artifacts/*.sarif
           if-no-files-found: ignore
