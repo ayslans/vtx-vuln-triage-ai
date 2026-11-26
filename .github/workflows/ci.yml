@@ -82,19 +82,10 @@ jobs:
           pip-audit --skip-editable --desc on --format json --output artifacts/pip-audit-report.json || true
           pip-audit --skip-editable --desc on
 
-      - name: Restore triage & scan cache
-        uses: actions/cache@v4
-        with:
-          path: artifacts
-          key: vtx-vuln-triage-cache-v1-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            vtx-vuln-triage-cache-v1-${{ runner.os }}-
-
       - name: Upload AppSec scan reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          retention-days: 14
           name: appsec-reports-vtx-vuln-triage-ai
           path: artifacts/
           retention-days: 14
@@ -164,7 +155,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          retention-days: 14
           name: trivy-sarif-vtx-vuln-triage-ai
           path: artifacts/*.sarif
           if-no-files-found: ignore
