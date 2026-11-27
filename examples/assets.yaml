@@ -1,0 +1,36 @@
+version: '1'
+assets:
+- asset_id: api-pagamentos-prod
+  name: API de Pagamentos
+  owner: squad-pagamentos@empresa.local
+  environment: prod
+  exposure: internet
+  criticality: critical
+  tags:
+  - pci-dss
+  - tier-0
+- asset_id: portal-clientes-prod
+  name: Portal Web de Clientes
+  owner: squad-web@empresa.local
+  environment: prod
+  exposure: internet
+  criticality: high
+  tags:
+  - frontend
+  - lgpd
+- asset_id: worker-etl-staging
+  name: Pipeline ETL de Dados
+  owner: squad-dados@empresa.local
+  environment: staging
+  exposure: internal
+  criticality: medium
+  tags:
+  - batch
+- asset_id: lab-sandbox-dev
+  name: Ambiente Sandbox de Testes
+  owner: squad-plataforma@empresa.local
+  environment: dev
+  exposure: internal
+  criticality: low
+  tags:
+  - ephemeral
