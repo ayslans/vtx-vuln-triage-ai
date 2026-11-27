@@ -63,4 +63,8 @@ class TriageDecision(BaseModel):
     sla_days: int = Field(..., gt=0)
     rationale: list[str] = Field(default_factory=list)
     pci_dss_in_scope: bool = False
+    asset_id: Optional[str] = None
+    asset_owner: Optional[str] = None
+    base_priority: Optional[Priority] = None
+    asset_adjustment: int = 0
     triaged_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

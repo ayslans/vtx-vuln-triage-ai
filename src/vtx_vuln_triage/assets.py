@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AssetEnvironment = Literal["prod", "staging", "dev"]
 AssetExposure = Literal["internet", "internal"]
-AssetCriticality = Literal["critical", "high", "medium", "low"]
+AssetBusinessCriticality = Literal["critical", "high", "medium", "low"]
 
 
 class AssetContext(BaseModel):
@@ -25,7 +25,7 @@ class AssetContext(BaseModel):
     owner: str = Field(..., min_length=1, max_length=120)
     environment: AssetEnvironment
     exposure: AssetExposure
-    criticality: AssetCriticality
+    criticality: AssetBusinessCriticality
     tags: list[str] = Field(default_factory=list)
 
 
