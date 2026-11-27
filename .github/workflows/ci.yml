@@ -151,6 +151,47 @@ jobs:
           sarif_file: "artifacts/trivy-container.sarif"
           category: "trivy-container-vtx-vuln-triage-ai"
 
+      - name: Setup Python for offline triage
+        if: always() && hashFiles('artifacts/trivy-fs.sarif') != ''
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Run offline triage on Trivy FS SARIF
+        if: always() && hashFiles('artifacts/trivy-fs.sarif') != ''
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m vtx_vuln_triage.main \
+            --input artifacts/trivy-fs.sarif \
+            --output artifacts/triage-report.md \
+            --json-output artifacts/triage-cases.json \
+            --format sarif \
+            --assets examples/assets.yaml \
+            --asset-id api-pagamentos-prod \
+            --criticality CDE \
+            --offline
+          python - << 'PY'
+          from pathlib import Path
+          from vtx_vuln_triage.reporting.json_exporter import TriageJsonReport
+          report = TriageJsonReport.model_validate_json(
+            Path("artifacts/triage-cases.json").read_text(encoding="utf-8")
+          )
+          print(f"Contrato JSON validado (v{report.schema_version}): {report.summary.total} achados")
+          PY
+
+      - name: Upload Triage JSON contract artifacts
+        if: always() && hashFiles('artifacts/triage-cases.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: triage-contract-vtx-vuln-triage-ai
+          path: |
+            artifacts/triage-cases.json
+            artifacts/triage-report.md
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload Trivy SARIF artifacts
         if: always()
         uses: actions/upload-artifact@v7
