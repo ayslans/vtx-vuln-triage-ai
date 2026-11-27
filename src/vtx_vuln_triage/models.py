@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Severity(str, Enum):
@@ -68,3 +68,14 @@ class TriageDecision(BaseModel):
     base_priority: Optional[Priority] = None
     asset_adjustment: int = 0
     triaged_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    sla_due_at: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def populate_sla_due_at(self) -> TriageDecision:
+        if self.triaged_at.tzinfo is None:
+            self.triaged_at = self.triaged_at.replace(tzinfo=timezone.utc)
+        if self.sla_due_at is None:
+            self.sla_due_at = self.triaged_at + timedelta(days=self.sla_days)
+        elif self.sla_due_at.tzinfo is None:
+            self.sla_due_at = self.sla_due_at.replace(tzinfo=timezone.utc)
+        return self

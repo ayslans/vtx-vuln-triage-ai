@@ -12,6 +12,7 @@ from vtx_vuln_triage.enrichers.epss_client import EpssClient
 from vtx_vuln_triage.models import AssetCriticality, EnrichedVulnerability, TriageDecision
 from vtx_vuln_triage.parsers.trivy_parser import parse_trivy_report
 from vtx_vuln_triage.policy.pci_engine import PciPolicyEngine
+from vtx_vuln_triage.reporting.json_exporter import export_triage_json
 from vtx_vuln_triage.reporting.llm_advisor import LlmAdvisor
 from vtx_vuln_triage.reporting.markdown_renderer import render_markdown_report
 
@@ -55,6 +56,7 @@ def run_pipeline(
     use_llm: bool = True,
     assets_path: Optional[str | Path] = None,
     asset_id: Optional[str] = None,
+    json_output_path: Optional[str | Path] = None,
 ) -> list[TriageDecision]:
     raw_vulns = parse_trivy_report(input_path)
     cve_ids = [v.cve_id for v in raw_vulns]
@@ -112,6 +114,15 @@ def run_pipeline(
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(markdown, encoding="utf-8")
+
+    if json_output_path is not None:
+        export_triage_json(
+            output_path=json_output_path,
+            decisions=decisions,
+            asset_context=asset_context,
+            asset_warning=asset_warning,
+        )
+
     return decisions
 
 
@@ -123,6 +134,12 @@ def triage(
         "--output",
         "-o",
         help="Caminho do relatório Markdown de saída",
+    ),
+    json_output: Optional[Path] = typer.Option(
+        None,
+        "--json-output",
+        "-j",
+        help="Caminho opcional do contrato JSON estruturado para Gestor de Casos e Dashboard",
     ),
     criticality: AssetCriticality = typer.Option(
         AssetCriticality.CDE,
@@ -161,8 +178,12 @@ def triage(
         offline=offline,
         assets_path=assets,
         asset_id=asset_id,
+        json_output_path=json_output,
     )
-    console.print(f"[green]Triagem concluída:[/green] {len(decisions)} achados salvos em {output_file}")
+    msg = f"[green]Triagem concluída:[/green] {len(decisions)} achados salvos em {output_file}"
+    if json_output is not None:
+        msg += f" (contrato JSON em {json_output})"
+    console.print(msg)
 
 
 if __name__ == "__main__":
