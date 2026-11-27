@@ -9,7 +9,13 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from vtx_vuln_triage.assets import AssetContext
-from vtx_vuln_triage.models import AssetCriticality, Priority, Severity, TriageDecision
+from vtx_vuln_triage.models import (
+    AssetCriticality,
+    FindingType,
+    Priority,
+    Severity,
+    TriageDecision,
+)
 
 CONTRACT_SCHEMA_VERSION = "1.0"
 
@@ -19,6 +25,8 @@ class CaseFindingContract(BaseModel):
 
     finding_id: str
     cve_id: str
+    source_scanner: str = "trivy"
+    finding_type: FindingType = "cve"
     package_name: str
     installed_version: str
     fixed_version: Optional[str] = None
@@ -94,6 +102,8 @@ def build_triage_json_report(
             CaseFindingContract(
                 finding_id=compute_finding_id(d),
                 cve_id=v.cve_id,
+                source_scanner=v.source_scanner,
+                finding_type=v.finding_type,
                 package_name=v.package_name,
                 installed_version=v.installed_version,
                 fixed_version=v.fixed_version,

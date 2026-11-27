@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
+
+FindingType = Literal["cve", "sast", "iac", "secret", "sarif"]
 
 
 class Severity(str, Enum):
@@ -29,7 +31,7 @@ class AssetCriticality(str, Enum):
 
 
 class RawVulnerability(BaseModel):
-    cve_id: str = Field(..., description="Identificador CVE (ex: CVE-2024-3094)")
+    cve_id: str = Field(..., description="Identificador CVE ou Rule ID (ex: CVE-2024-3094, B602)")
     package_name: str
     installed_version: str
     fixed_version: Optional[str] = None
@@ -37,15 +39,34 @@ class RawVulnerability(BaseModel):
     cvss_score: Optional[float] = Field(default=None, ge=0.0, le=10.0)
     title: Optional[str] = None
     description: Optional[str] = None
-    target: str = Field(..., description="Imagem, container ou manifesto analisado")
+    target: str = Field(..., description="Imagem, container, arquivo ou manifesto analisado")
+    source_scanner: str = Field(
+        default="trivy",
+        description="Scanner de origem (trivy, bandit, semgrep, etc.)",
+    )
+    finding_type: FindingType = Field(
+        default="cve",
+        description="Tipo do achado (cve, sast, iac, secret, sarif)",
+    )
 
-    @field_validator("cve_id")
-    @classmethod
-    def normalize_cve_id(cls, value: str) -> str:
-        cleaned = value.strip().upper()
-        if not cleaned.startswith("CVE-"):
-            raise ValueError(f"cve_id inválido: {value}")
-        return cleaned
+    @model_validator(mode="after")
+    def validate_identifier(self) -> RawVulnerability:
+        cleaned = self.cve_id.strip()
+        if not cleaned:
+            raise ValueError("cve_id inválido: identificador vazio")
+
+        upper = cleaned.upper()
+        if self.finding_type == "cve":
+            if not upper.startswith("CVE-"):
+                raise ValueError(f"cve_id inválido: {self.cve_id}")
+            self.cve_id = upper
+        elif upper.startswith(("CVE-", "AVD-", "CWE-")):
+            self.cve_id = upper
+        else:
+            self.cve_id = cleaned
+
+        self.source_scanner = self.source_scanner.strip().lower() or "unknown"
+        return self
 
 
 class EnrichedVulnerability(RawVulnerability):

@@ -10,13 +10,15 @@ from vtx_vuln_triage.assets import AssetContext, resolve_asset_context
 from vtx_vuln_triage.enrichers.cisa_kev import CisaKevClient
 from vtx_vuln_triage.enrichers.epss_client import EpssClient
 from vtx_vuln_triage.models import AssetCriticality, EnrichedVulnerability, TriageDecision
-from vtx_vuln_triage.parsers.trivy_parser import parse_trivy_report
+from vtx_vuln_triage.parsers.auto_parser import InputFormat, parse_security_report
 from vtx_vuln_triage.policy.pci_engine import PciPolicyEngine
 from vtx_vuln_triage.reporting.json_exporter import export_triage_json
 from vtx_vuln_triage.reporting.llm_advisor import LlmAdvisor
 from vtx_vuln_triage.reporting.markdown_renderer import render_markdown_report
 
-app = typer.Typer(help="CLI de triagem de vulnerabilidades (Trivy + KEV + EPSS + PCI-DSS + IA).")
+app = typer.Typer(
+    help="CLI de triagem de vulnerabilidades (Trivy/SARIF + KEV + EPSS + PCI-DSS + IA)."
+)
 console = Console()
 
 
@@ -57,11 +59,12 @@ def run_pipeline(
     assets_path: Optional[str | Path] = None,
     asset_id: Optional[str] = None,
     json_output_path: Optional[str | Path] = None,
+    input_format: InputFormat | str = InputFormat.AUTO,
 ) -> list[TriageDecision]:
-    raw_vulns = parse_trivy_report(input_path)
-    cve_ids = [v.cve_id for v in raw_vulns]
+    raw_vulns = parse_security_report(input_path, input_format=input_format)
+    cve_ids = [v.cve_id for v in raw_vulns if v.cve_id.startswith("CVE-")]
 
-    if offline:
+    if offline or not cve_ids:
         kev_map = {}
         epss_map = {}
     else:
@@ -128,7 +131,12 @@ def run_pipeline(
 
 @app.command()
 def triage(
-    input_file: Path = typer.Option(..., "--input", "-i", help="Caminho do JSON gerado pelo Trivy"),
+    input_file: Path = typer.Option(
+        ...,
+        "--input",
+        "-i",
+        help="Caminho do relatório Trivy JSON ou SARIF 2.1.0 (Trivy, Bandit, Semgrep)",
+    ),
     output_file: Path = typer.Option(
         Path("data/reports/triage_report.md"),
         "--output",
@@ -140,6 +148,12 @@ def triage(
         "--json-output",
         "-j",
         help="Caminho opcional do contrato JSON estruturado para Gestor de Casos e Dashboard",
+    ),
+    input_format: InputFormat = typer.Option(
+        InputFormat.AUTO,
+        "--format",
+        "-f",
+        help="Formato de entrada (auto, trivy, sarif)",
     ),
     criticality: AssetCriticality = typer.Option(
         AssetCriticality.CDE,
@@ -179,6 +193,7 @@ def triage(
         assets_path=assets,
         asset_id=asset_id,
         json_output_path=json_output,
+        input_format=input_format,
     )
     msg = f"[green]Triagem concluída:[/green] {len(decisions)} achados salvos em {output_file}"
     if json_output is not None:
